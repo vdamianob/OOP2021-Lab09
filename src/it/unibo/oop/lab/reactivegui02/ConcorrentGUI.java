@@ -1,5 +1,4 @@
-package it.unibo.oop.lab.reactivegui01;
-
+package it.unibo.oop.lab.reactivegui02;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -12,22 +11,25 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-
 /**
- * This is a first example on how to realize a reactive GUI.
+ * 
+ * @author vittorio
+ * blablabla
  */
-public final class ConcurrentGUI extends JFrame { // a generic GUI that extends JFrame
+public final class ConcorrentGUI extends JFrame {
 
     private static final long serialVersionUID = 1L;
     private static final double WIDTH_PERC = 0.2;
     private static final double HEIGHT_PERC = 0.2;
     private final JLabel display = new JLabel();
     private final JButton stop = new JButton("stop");
+    private final JButton up = new JButton("up");
+    private final JButton down = new JButton("down");
 
     /**
      * Builds a new CGUI.
      */
-    public ConcurrentGUI() {
+    public ConcorrentGUI() {
         super();
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         this.setSize((int) (screenSize.getWidth() * WIDTH_PERC), (int) (screenSize.getHeight() * HEIGHT_PERC));
@@ -35,7 +37,9 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
         final JPanel panel = new JPanel();
         panel.add(display); //added display, where the number is
         panel.add(stop);
-        this.getContentPane().add(panel); //added JPanel "panel"t o the Pane
+        panel.add(up);
+        panel.add(down);
+        this.getContentPane().add(panel); //added JPanel "panel" to the Pane
         this.setVisible(true);
         /*
          * Create the counter agent and start it. This is actually not so good:
@@ -58,6 +62,37 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
             public void actionPerformed(final ActionEvent e) {
                 // Agent should be final
                 agent.stopCounting();
+                stop.setEnabled(false);
+                up.setEnabled(false);
+                down.setEnabled(false);
+            }
+        });
+
+        up.addActionListener(new ActionListener() {
+            /**
+             * event handler associated to action event on button up.
+             * 
+             * @param e
+             *            the action event that will be handled by this listener
+             */
+            @Override
+            public void actionPerformed(final ActionEvent e) {
+                // Agent should be final
+                agent.trendUp();
+            }
+        });
+
+        down.addActionListener(new ActionListener() {
+            /**
+             * event handler associated to action event on button down.
+             * 
+             * @param e
+             *            the action event that will be handled by this listener
+             */
+            @Override
+            public void actionPerformed(final ActionEvent e) {
+                // Agent should be final
+                agent.trendDown();
             }
         });
     }
@@ -79,6 +114,7 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
          */
         private volatile boolean stop; //di default è false
         private volatile int counter;
+        private volatile boolean trend;
 
         @Override
         public void run() {
@@ -92,7 +128,7 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
                         @Override
                         public void run() {
                             // This will happen in the EDT: since i'm reading counter it needs to be volatile.
-                            ConcurrentGUI.this.display.setText(Integer.toString(Agent.this.counter));
+                            ConcorrentGUI.this.display.setText(Integer.toString(Agent.this.counter));
                         }
                     });
                     /*
@@ -103,8 +139,14 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
                      * EXERCISE: Can you think of a solution that doesn't require counter to be volatile? (without
                      * using synchronized or locks)
                      */
-                    this.counter += 1;
+                    if (!trend) {
+                        this.counter++;
+                    }
+                    else {
+                        this.counter--;
+                    }
                     Thread.sleep(100);
+
                 } catch (InvocationTargetException | InterruptedException ex) {
                     /*
                      * This is just a stack trace print, in a real program there
@@ -120,6 +162,15 @@ public final class ConcurrentGUI extends JFrame { // a generic GUI that extends 
          */
         public void stopCounting() {
             this.stop = true;
+            
+        }
+
+        public void trendUp() {
+            this.trend = false;
+        }
+
+        public void trendDown() {
+            this.trend = true;
         }
     }
 }
