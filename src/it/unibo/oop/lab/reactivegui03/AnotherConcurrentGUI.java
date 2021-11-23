@@ -1,4 +1,4 @@
-package it.unibo.oop.lab.reactivegui02;
+package it.unibo.oop.lab.reactivegui03;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -11,31 +11,34 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-/**
- * 
- *
- * blablabla
- */
-public final class ConcorrentGUI extends JFrame {
 
+/**
+ *  blablabla
+ *
+ */
+public final class AnotherConcurrentGUI extends JFrame {
     private static final long serialVersionUID = 1L;
     private static final double WIDTH_PERC = 0.2;
     private static final double HEIGHT_PERC = 0.2;
     private final JLabel display = new JLabel();
+    private final JLabel display2 = new JLabel();
     private final JButton stop = new JButton("stop");
     private final JButton up = new JButton("up");
     private final JButton down = new JButton("down");
+    private boolean timeToStop;
 
     /**
      * Builds a new CGUI.
      */
-    public ConcorrentGUI() {
+    public AnotherConcurrentGUI() {
         super();
+        this.timeToStop = false;
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         this.setSize((int) (screenSize.getWidth() * WIDTH_PERC), (int) (screenSize.getHeight() * HEIGHT_PERC));
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         final JPanel panel = new JPanel();
         panel.add(display); //added display, where the number is
+        panel.add(display2);
         panel.add(stop);
         panel.add(up);
         panel.add(down);
@@ -47,7 +50,9 @@ public final class ConcorrentGUI extends JFrame {
          * java.util.concurrent.ExecutorService
          */
         final Agent agent = new Agent();
+        final AgentTimer agentT = new AgentTimer();
         new Thread(agent).start();
+        new Thread(agentT).start();
         /*
          * Register a listener that stops it
          */
@@ -118,7 +123,7 @@ public final class ConcorrentGUI extends JFrame {
 
         @Override
         public void run() {
-            while (!this.stop) {
+            while (!this.stop && !timeToStop) {
                 try {
                     /*
                      * All the operations on the GUI must be performed by the
@@ -128,7 +133,7 @@ public final class ConcorrentGUI extends JFrame {
                         @Override
                         public void run() {
                             // This will happen in the EDT: since i'm reading counter it needs to be volatile.
-                            ConcorrentGUI.this.display.setText(Integer.toString(Agent.this.counter));
+                            AnotherConcurrentGUI.this.display.setText(Integer.toString(Agent.this.counter));
                         }
                     });
                     /*
@@ -162,7 +167,6 @@ public final class ConcorrentGUI extends JFrame {
          */
         public void stopCounting() {
             this.stop = true;
-            
         }
 
         public void trendUp() {
@@ -173,4 +177,37 @@ public final class ConcorrentGUI extends JFrame {
             this.trend = true;
         }
     }
+
+    private class AgentTimer implements Runnable {
+
+        @Override
+        public void run() {
+                try {
+                    Thread.sleep(5000);
+                    SwingUtilities.invokeAndWait(new Runnable() {
+                    @Override
+                    public void run() {
+                        AnotherConcurrentGUI.this.timeToStop = true;
+                        AnotherConcurrentGUI.this.stop.setEnabled(false);
+                        AnotherConcurrentGUI.this.up.setEnabled(false);
+                        AnotherConcurrentGUI.this.down.setEnabled(false);
+                        AnotherConcurrentGUI.this.display2.setText("STOPPED");
+                    }
+                });
+
+                } catch (InvocationTargetException | InterruptedException ex) {
+                    /*
+                     * This is just a stack trace print, in a real program there
+                     * should be some logging and decent error reporting
+                     */
+                    ex.printStackTrace();
+                }
+            }
+        }
+
+        /**
+         * External command to stop counting.
+         */
+        
 }
+
